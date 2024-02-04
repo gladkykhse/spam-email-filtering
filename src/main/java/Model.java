@@ -1,11 +1,16 @@
 import weka.classifiers.Classifier;
 import weka.classifiers.Evaluation;
 import weka.classifiers.bayes.NaiveBayes;
-import weka.core.*;
+import weka.core.Attribute;
+import weka.core.DenseInstance;
+import weka.core.FastVector;
+import weka.core.Instances;
 import weka.filters.Filter;
 
 import java.io.*;
-import java.util.*;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Random;
 
 /**
  * The Model class represents the machine learning model for spam email filtering.
@@ -24,6 +29,20 @@ public class Model implements Serializable {
     public Model(SpamDataset dataset) {
         this.classifier = new NaiveBayes();
         this.dataset = dataset;
+    }
+
+    /**
+     * Loads a previously saved machine learning model from a specified file.
+     *
+     * @param filePath the path to the file from which the model should be loaded.
+     * @return the loaded Model instance.
+     * @throws IOException            if an I/O error occurs during the loading process.
+     * @throws ClassNotFoundException if the class of the serialized object cannot be found.
+     */
+    public static Model loadModel(String filePath) throws IOException, ClassNotFoundException {
+        try (ObjectInputStream ois = new ObjectInputStream(new FileInputStream(filePath))) {
+            return (Model) ois.readObject();
+        }
     }
 
     private Map<String, Double> extractMetrics(Evaluation eval) {
@@ -72,10 +91,8 @@ public class Model implements Serializable {
     public Map<String, Double> evaluate() throws Exception {
         Instances testInstances = dataset.getTestInstances();
 
-        if (testInstances == null)
-            return crossValidateModel(dataset.getTrainInstances());
-        else
-            return evaluateTestDataset(testInstances);
+        if (testInstances == null) return crossValidateModel(dataset.getTrainInstances());
+        else return evaluateTestDataset(testInstances);
     }
 
     /**
@@ -87,20 +104,6 @@ public class Model implements Serializable {
     public void saveModel(String filePath) throws IOException {
         try (ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(filePath))) {
             oos.writeObject(this);
-        }
-    }
-
-    /**
-     * Loads a previously saved machine learning model from a specified file.
-     *
-     * @param filePath the path to the file from which the model should be loaded.
-     * @return the loaded Model instance.
-     * @throws IOException            if an I/O error occurs during the loading process.
-     * @throws ClassNotFoundException if the class of the serialized object cannot be found.
-     */
-    public static Model loadModel(String filePath) throws IOException, ClassNotFoundException {
-        try (ObjectInputStream ois = new ObjectInputStream(new FileInputStream(filePath))) {
-            return (Model) ois.readObject();
         }
     }
 
@@ -135,9 +138,7 @@ public class Model implements Serializable {
             throw new RuntimeException(e);
         }
 
-        if (probability < 0.5)
-            return "spam";
-        else
-            return "ham";
+        if (probability < 0.5) return "spam";
+        else return "ham";
     }
 }
